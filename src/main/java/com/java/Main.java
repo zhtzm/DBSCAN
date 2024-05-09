@@ -20,7 +20,8 @@ public class Main {
 //        Boolean hasID = Boolean.parseBoolean(args[5]);
 //
 //        Main.uploadLocalFile(jobName, localPath, num_field, hasID);
-        DataPartitioning.partitioning(fileName, 4);
+        double threshold = 100.;
+        new DataPartitioning(fileName, 4, threshold).partitioning();
     }
 
     private static void uploadLocalFile(String jobName, String localPath, Integer num_field, Boolean hasID)
