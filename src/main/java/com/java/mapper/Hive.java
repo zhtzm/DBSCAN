@@ -49,7 +49,7 @@ public class Hive {
         state = con.createStatement();
     }
 
-    public void createTable(String DBName, String tableName, Integer num_field, Boolean hasID)
+    public void createTable(String DBName, String tableName, Integer num_field, String terminated)
             throws SQLException, ClassNotFoundException {
         if (DBName == null) {
             init(DBNAME);
@@ -57,9 +57,7 @@ public class Hive {
             init(DBName);
         }
         StringBuilder fieldStr = new StringBuilder();
-        if (hasID) {
-            fieldStr.append("ID int,");
-        }
+        fieldStr.append("id int,");
         for (int i = 0; i < num_field; i++) {
             fieldStr.append("x").append(i).append(" DOUBLE");
             if (i != num_field - 1)
@@ -68,7 +66,7 @@ public class Hive {
         String sql = "create table if not exists " + tableName + " (" +
                 fieldStr + ")" +
                 "row format delimited " +
-                "fields terminated by ' ' " +//字段与字段之间的分隔符
+                "fields terminated by '" + terminated + "' " +//字段与字段之间的分隔符
                 "lines terminated by '\n' ";
         state.execute(sql);
     }

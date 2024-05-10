@@ -1,4 +1,4 @@
-package com.java.tree;
+package com.java.ds;
 
 public class BinaryTree {
 }

@@ -2,13 +2,14 @@ package com.java;
 
 import com.java.mapper.HDFS;
 import com.java.mapper.Hive;
-import com.java.tree.TreeNode;
+import com.java.ds.TreeNode;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,14 +29,12 @@ public class DataPartitioning {
         this.threshold = threshold;
     }
 
-    public void partitioning()
+    public void partitioning(int partitionNum)
             throws SQLException, ClassNotFoundException, IOException {
-        hive.showDBS();
-        Hive.destroy();
-
         Double[] minArray = new Double[num_field];
         Double[] maxArray = new Double[num_field];
 
+        System.out.println(MR_DBSCAN.formatter.format(LocalDateTime.now()) + "获取各维度上下界");
         for (int i = 0; i < num_field; i++) {
             try (ResultSet res = hive.sql(null,
                     "SELECT MIN(x" + i + ") AS min_value FROM " + table_name)) {
@@ -51,6 +50,7 @@ public class DataPartitioning {
                 }
             }
         }
+        System.out.println(MR_DBSCAN.formatter.format(LocalDateTime.now()) + "获取成功");
 
         long num = 0;
         try (ResultSet res = hive.sql(null,
@@ -60,11 +60,13 @@ public class DataPartitioning {
             }
         }
 
-        int partitionNum = 5000;
         TreeNode root = new TreeNode(-1, minArray, maxArray, num);
+        System.out.println(MR_DBSCAN.formatter.format(LocalDateTime.now()) + "开始建树");
         buildTree(root, 0, partitionNum);
+        System.out.println(MR_DBSCAN.formatter.format(LocalDateTime.now()) + "建树完成");
 
         List<TreeNode> leafNodes = new ArrayList<>();
+        System.out.println(MR_DBSCAN.formatter.format(LocalDateTime.now()) + "获取叶子节点");
         getLeafNodes(leafNodes, root);
 
         int index = 0; // 从1开始计数
@@ -72,6 +74,7 @@ public class DataPartitioning {
             S_map.put(index++, leaf); // 将叶子节点添加到map中，并递增index
         }
 
+        System.out.println(MR_DBSCAN.formatter.format(LocalDateTime.now()) + "分区导入HDFS");
         hdfsSP();
     }
 
@@ -152,50 +155,85 @@ public class DataPartitioning {
             Double[] min = S_map.get(i).getBottom();
             Double[] max = S_map.get(i).getTop();
 
-            StringBuilder sqlS = new StringBuilder("SELECT * FROM " + table_name + " WHERE ");
+            System.out.println(MR_DBSCAN.formatter.format(LocalDateTime.now()) + i +"分区IR导入HDFS");
+            StringBuilder sqlIR = new StringBuilder("SELECT * FROM " + table_name + " WHERE ");
             for (int j = 0; j < num_field; j++) {
                 if (j > 0) {
-                    sqlS.append(" AND ");
+                    sqlIR.append(" AND ");
                 }
-                sqlS.append("x").append(j).append(" >= ").append(min[j])
-                        .append(" AND x").append(j).append(" < ").append(max[j]);
+                sqlIR.append("x").append(j).append(" >= ").append(min[j] + threshold)
+                        .append(" AND x").append(j).append(" < ").append(max[j] - threshold);
             }
-            try (ResultSet res1 = hive.sql(null, sqlS.toString())) {
+            try (ResultSet res1 = hive.sql(null, sqlIR.toString())) {
                 while (res1.next()) {
-                    StringBuilder value = new StringBuilder(i + " " + "S:[");
+                    StringBuilder value = new StringBuilder(i + "\t" + "IR ");
                     for (int k = 2; k < num_field + 1; k++) {
-                        value.append(res1.getString(k)).append(",");
+                        value.append(res1.getString(k)).append(" ");
                     }
-                    value.append(res1.getString(num_field + 1)).append("]\n");
+                    value.append(res1.getString(num_field + 1)).append("\t");
+                    value.append(res1.getString(1)).append("\n");
                     outputStream.writeBytes(value.toString());
                 }
             }
             Hive.destroy();
 
-            StringBuilder sqlP = new StringBuilder("SELECT * FROM " + table_name + " WHERE (");
+            System.out.println(MR_DBSCAN.formatter.format(LocalDateTime.now()) + i +"分区IM导入HDFS");
+            StringBuilder sqlIM = new StringBuilder("SELECT * FROM " + table_name + " WHERE (");
             for (int j = 0; j < num_field; j++) {
                 if (j > 0) {
-                    sqlP.append(" AND ");
+                    sqlIM.append(" AND ");
                 }
-                sqlP.append("x").append(j).append(" >= ").append(min[j] - threshold)
-                        .append(" AND x").append(j).append(" < ").append(max[j] + threshold);
-            }
-            sqlP.append(") AND NOT (");
-            for (int j = 0; j < num_field; j++) {
-                if (j > 0) {
-                    sqlP.append(" AND ");
-                }
-                sqlP.append("x").append(j).append(" >= ").append(min[j])
+                sqlIM.append("x").append(j).append(" >= ").append(min[j])
                         .append(" AND x").append(j).append(" < ").append(max[j]);
             }
-            sqlP.append(")");
-            try (ResultSet res2 = hive.sql(null, sqlP.toString())) {
+            sqlIM.append(") AND NOT (");
+            for (int j = 0; j < num_field; j++) {
+                if (j > 0) {
+                    sqlIM.append(" AND ");
+                }
+                sqlIM.append("x").append(j).append(" >= ").append(min[j] + threshold)
+                        .append(" AND x").append(j).append(" < ").append(max[j] - threshold);
+            }
+            sqlIM.append(")");
+            try (ResultSet res2 = hive.sql(null, sqlIM.toString())) {
                 while (res2.next()) {
-                    StringBuilder value = new StringBuilder(i + " " + "P:[");
+                    StringBuilder value = new StringBuilder(i + "\t" + "IM ");
                     for (int k = 2; k < num_field + 1; k++) {
-                        value.append(res2.getString(k)).append(",");
+                        value.append(res2.getString(k)).append(" ");
                     }
-                    value.append(res2.getString(num_field + 1)).append("]\n");
+                    value.append(res2.getString(num_field + 1)).append("\t");
+                    value.append(res2.getString(1)).append("\n");
+                    outputStream.writeBytes(value.toString());
+                }
+            }
+            Hive.destroy();
+
+            System.out.println(MR_DBSCAN.formatter.format(LocalDateTime.now()) + i +"分区OM导入HDFS");
+            StringBuilder sqlOM = new StringBuilder("SELECT * FROM " + table_name + " WHERE (");
+            for (int j = 0; j < num_field; j++) {
+                if (j > 0) {
+                    sqlOM.append(" AND ");
+                }
+                sqlOM.append("x").append(j).append(" >= ").append(min[j] - threshold)
+                        .append(" AND x").append(j).append(" < ").append(max[j] + threshold);
+            }
+            sqlOM.append(") AND NOT (");
+            for (int j = 0; j < num_field; j++) {
+                if (j > 0) {
+                    sqlOM.append(" AND ");
+                }
+                sqlOM.append("x").append(j).append(" >= ").append(min[j])
+                        .append(" AND x").append(j).append(" < ").append(max[j]);
+            }
+            sqlOM.append(")");
+            try (ResultSet res3 = hive.sql(null, sqlOM.toString())) {
+                while (res3.next()) {
+                    StringBuilder value = new StringBuilder(i + "\t" + "OM ");
+                    for (int k = 2; k < num_field + 1; k++) {
+                        value.append(res3.getString(k)).append(" ");
+                    }
+                    value.append(res3.getString(num_field + 1)).append("\t");
+                    value.append(res3.getString(1)).append("\n");
                     outputStream.writeBytes(value.toString());
                 }
             }

@@ -28,7 +28,6 @@ public class HDFS {
         Path src = new Path(sourceFile);
         Path tgt = new Path(targetPath);
         fs.copyFromLocalFile(src,tgt);
-        System.out.println("上传成功");
     }
 
     public void download(String sourceFile, String targetPath) throws IOException {
@@ -53,7 +52,9 @@ public class HDFS {
 
     public void delete(String path) throws IOException {
         Path src = new Path(path);
-        fs.delete(src,true);
+        if (fs.exists(src)) {
+            fs.delete(src, true);
+        }
         System.out.println("删除成功");
     }
 
