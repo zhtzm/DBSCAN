@@ -1,7 +1,6 @@
 package com.java.MR;
 
 import com.java.DBSCAN;
-import com.java.MR_DBSCAN;
 import com.java.ds.CType;
 import com.java.ds.PType;
 import com.java.ds.Point;

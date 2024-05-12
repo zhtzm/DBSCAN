@@ -16,12 +16,12 @@ public class MR_DBSCAN {
     public static final HDFS hdfs = new HDFS();
     public static final Hive hive = new Hive();
 
-    private static String FileName = null;
     public static String TableName = null;
     public static int MinPts;
     public static double Epsilon;
     public static int NumField;
     public static int PartitionNum;
+    public static String OutputPath;
 
     public static void main(String[] args) throws Exception {
         //参数：Epsilon, MinPts, localPath, NumField, PartitionNum
@@ -32,9 +32,10 @@ public class MR_DBSCAN {
         PartitionNum = Integer.parseInt(args[4]);
 
         uploadLocalFile(localPath, NumField);
-        (new DataPartitioning(FileName, NumField, Epsilon)).partitioning(PartitionNum);
+        DataPartitioning.partitioning(PartitionNum, Epsilon, NumField);
         LocalClustering.clustering(MinPts, Epsilon, TableName);
         Merging.merging(TableName, NumField);
+        Draw.draw(NumField, OutputPath);
     }
 
     public static void uploadLocalFile(String localPath, Integer num_field)
@@ -48,10 +49,10 @@ public class MR_DBSCAN {
 
         int lastIndex = localPath.lastIndexOf("/");
         if (lastIndex != -1) {
-            FileName = localPath.substring(lastIndex + 1);
-            String hdfsPath = inputPath + "/" + FileName;
+            String fileName = localPath.substring(lastIndex + 1);
+            String hdfsPath = inputPath + "/" + fileName;
 
-            TableName = FileName.split("\\.")[0];
+            TableName = fileName.split("\\.")[0];
             System.out.println(Formatter.format(LocalDateTime.now()) + "开始建表：" + TableName);
             if(hive.existsTable(null, TableName)) {
                 hive.dropTable(null, TableName);
