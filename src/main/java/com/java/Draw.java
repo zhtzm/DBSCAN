@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -64,6 +65,7 @@ public class Draw {
         double scaleX = (double) imageWidth / (maxX - minX);
         double scaleY = (double) imageHeight / (maxY - minY);
 
+        System.out.println(MR_DBSCAN.Formatter.format(LocalDateTime.now()) + "开始绘点");
         try (ResultSet res = hive.sql(null, "select * from final_merge")) {
             while (res.next()) {
                 int cid2 = Integer.parseInt(res.getString("cid2"));
@@ -79,9 +81,12 @@ public class Draw {
                 g2d.fillOval(px, py, 2, 2); // 绘制一个5x5的圆点
             }
         }
+        System.out.println(MR_DBSCAN.Formatter.format(LocalDateTime.now()) + "绘点完成");
 
+        System.out.println(MR_DBSCAN.Formatter.format(LocalDateTime.now()) + "开始绘图");
         ImageIO.write(image, "png", new File(output + "/output.png"));
         g2d.dispose();
+        System.out.println(MR_DBSCAN.Formatter.format(LocalDateTime.now()) + "绘图完成");
     }
 
     public static Map<Integer, Color> allocateColors(List<Integer> num_cluster) {

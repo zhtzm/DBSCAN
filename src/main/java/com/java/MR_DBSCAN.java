@@ -24,12 +24,13 @@ public class MR_DBSCAN {
     public static String OutputPath;
 
     public static void main(String[] args) throws Exception {
-        //参数：Epsilon, MinPts, localPath, NumField, PartitionNum
+        //参数：Epsilon, MinPts, localPath, NumField, PartitionNum, OutputPath
         Epsilon = Double.parseDouble(args[0]);
         MinPts = Integer.parseInt(args[1]);
         String localPath = args[2];
         NumField = Integer.parseInt(args[3]);
         PartitionNum = Integer.parseInt(args[4]);
+        OutputPath = args[5];
 
         uploadLocalFile(localPath, NumField);
         DataPartitioning.partitioning(PartitionNum, Epsilon, NumField);
