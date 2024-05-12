@@ -195,8 +195,8 @@ public class Merging {
         }
         String ddlL = "create table if not exists local_tmp " +
                 "(pid INT, cid INT, pt STRING, ct STRING, id INT) " +
-                "row format delimited fields terminated by \t' " +
-                "lines terminated by \n";
+                "row format delimited fields terminated by '\t' " +
+                "lines terminated by '\n'";
         hive.ddl(null, ddlL);
         System.out.println(MR_DBSCAN.Formatter.format(LocalDateTime.now()) + "建表完成:local_tmp");
         System.out.println(MR_DBSCAN.Formatter.format(LocalDateTime.now()) + "导入数据:local_tmp");

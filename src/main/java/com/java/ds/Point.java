@@ -53,6 +53,7 @@ public class Point {
             this.size++;
         }
 
+        clusterId = -1;
         visited = false;
         PartitionId = partition;
     }
