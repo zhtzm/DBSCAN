@@ -50,6 +50,7 @@ public class DataPartitioning {
                     maxArray[i] = Double.parseDouble(res.getString("max_value")) + 1.0;
                 }
             }
+            Hive.destroy();
         }
         System.out.println(MR_DBSCAN.Formatter.format(LocalDateTime.now()) + "获取成功");
 
