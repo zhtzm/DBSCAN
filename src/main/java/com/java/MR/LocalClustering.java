@@ -41,14 +41,14 @@ public class LocalClustering {
         job.setOutputValueClass(Text.class);
 
         FileInputFormat.addInputPath(job,
-                new Path("/job/DBSCAN/output/" + MR_DBSCAN.TableName + "_partition.txt"));
+                new Path("/job/DBSCAN/output/" + partitionFile + "_partition.txt"));
         hdfs.init();
-        if(hdfs.exists("/job/DBSCAN/output/" + MR_DBSCAN.TableName + "_local")) {
-            hdfs.delete("/job/DBSCAN/output/" + MR_DBSCAN.TableName + "_local");
+        if(hdfs.exists("/job/DBSCAN/output/" + partitionFile + "_local")) {
+            hdfs.delete("/job/DBSCAN/output/" + partitionFile + "_local");
         }
         hdfs.close();
         FileOutputFormat.setOutputPath(job,
-                new Path("/job/DBSCAN/output/" + MR_DBSCAN.TableName + "_local"));
+                new Path("/job/DBSCAN/output/" + partitionFile + "_local"));
 
         job.waitForCompletion(true);
     }
