@@ -6,6 +6,6 @@ import java.io.IOException;
 
 public class TestLC {
     public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
-        LocalClustering.clustering(20, 200, "partition.txt");
+        LocalClustering.clustering(30, 20000, "10000data");
     }
 }

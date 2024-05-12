@@ -15,9 +15,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.java.MR_DBSCAN.hdfs;
+import static com.java.MR_DBSCAN.hive;
+
 public class DataPartitioning {
-    private static final HDFS hdfs = new HDFS();
-    private static final Hive hive = new Hive();
     private static final Map<Integer, TreeNode> S_map = new HashMap<>();
     private final String table_name;
     private final int num_field;
@@ -34,7 +35,7 @@ public class DataPartitioning {
         Double[] minArray = new Double[num_field];
         Double[] maxArray = new Double[num_field];
 
-        System.out.println(MR_DBSCAN.formatter.format(LocalDateTime.now()) + "获取各维度上下界");
+        System.out.println(MR_DBSCAN.Formatter.format(LocalDateTime.now()) + "获取各维度上下界");
         for (int i = 0; i < num_field; i++) {
             try (ResultSet res = hive.sql(null,
                     "SELECT MIN(x" + i + ") AS min_value FROM " + table_name)) {
@@ -50,7 +51,7 @@ public class DataPartitioning {
                 }
             }
         }
-        System.out.println(MR_DBSCAN.formatter.format(LocalDateTime.now()) + "获取成功");
+        System.out.println(MR_DBSCAN.Formatter.format(LocalDateTime.now()) + "获取成功");
 
         long num = 0;
         try (ResultSet res = hive.sql(null,
@@ -61,12 +62,12 @@ public class DataPartitioning {
         }
 
         TreeNode root = new TreeNode(-1, minArray, maxArray, num);
-        System.out.println(MR_DBSCAN.formatter.format(LocalDateTime.now()) + "开始建树");
+        System.out.println(MR_DBSCAN.Formatter.format(LocalDateTime.now()) + "开始建树");
         buildTree(root, 0, partitionNum);
-        System.out.println(MR_DBSCAN.formatter.format(LocalDateTime.now()) + "建树完成");
+        System.out.println(MR_DBSCAN.Formatter.format(LocalDateTime.now()) + "建树完成");
 
         List<TreeNode> leafNodes = new ArrayList<>();
-        System.out.println(MR_DBSCAN.formatter.format(LocalDateTime.now()) + "获取叶子节点");
+        System.out.println(MR_DBSCAN.Formatter.format(LocalDateTime.now()) + "获取叶子节点");
         getLeafNodes(leafNodes, root);
 
         int index = 0; // 从1开始计数
@@ -74,8 +75,9 @@ public class DataPartitioning {
             S_map.put(index++, leaf); // 将叶子节点添加到map中，并递增index
         }
 
-        System.out.println(MR_DBSCAN.formatter.format(LocalDateTime.now()) + "分区导入HDFS");
+        System.out.println(MR_DBSCAN.Formatter.format(LocalDateTime.now()) + "分区导入HDFS");
         hdfsSP();
+        System.out.println(MR_DBSCAN.Formatter.format(LocalDateTime.now()) + "导入HDFS完成");
     }
 
     private void buildTree(TreeNode parent, int split, long max_num) throws SQLException, ClassNotFoundException {
@@ -147,7 +149,7 @@ public class DataPartitioning {
 
     private void hdfsSP() throws SQLException, ClassNotFoundException, IOException {
         String outputPath = HDFS.JOB_PATH + "/output";
-        Path file = new Path(outputPath + "/" + "partition.txt");
+        Path file = new Path(outputPath + "/" + MR_DBSCAN.TableName + "_partition.txt");
         hdfs.init();
         FSDataOutputStream outputStream = hdfs.createFile(file);
 
@@ -155,7 +157,7 @@ public class DataPartitioning {
             Double[] min = S_map.get(i).getBottom();
             Double[] max = S_map.get(i).getTop();
 
-            System.out.println(MR_DBSCAN.formatter.format(LocalDateTime.now()) + i +"分区IR导入HDFS");
+            System.out.println(MR_DBSCAN.Formatter.format(LocalDateTime.now()) + i +"分区IR导入HDFS");
             StringBuilder sqlIR = new StringBuilder("SELECT * FROM " + table_name + " WHERE ");
             for (int j = 0; j < num_field; j++) {
                 if (j > 0) {
@@ -177,7 +179,7 @@ public class DataPartitioning {
             }
             Hive.destroy();
 
-            System.out.println(MR_DBSCAN.formatter.format(LocalDateTime.now()) + i +"分区IM导入HDFS");
+            System.out.println(MR_DBSCAN.Formatter.format(LocalDateTime.now()) + i +"分区IM导入HDFS");
             StringBuilder sqlIM = new StringBuilder("SELECT * FROM " + table_name + " WHERE (");
             for (int j = 0; j < num_field; j++) {
                 if (j > 0) {
@@ -208,7 +210,7 @@ public class DataPartitioning {
             }
             Hive.destroy();
 
-            System.out.println(MR_DBSCAN.formatter.format(LocalDateTime.now()) + i +"分区OM导入HDFS");
+            System.out.println(MR_DBSCAN.Formatter.format(LocalDateTime.now()) + i +"分区OM导入HDFS");
             StringBuilder sqlOM = new StringBuilder("SELECT * FROM " + table_name + " WHERE (");
             for (int j = 0; j < num_field; j++) {
                 if (j > 0) {
@@ -241,6 +243,5 @@ public class DataPartitioning {
         }
 
         hdfs.close();
-        System.out.println("Data written to HDFS successfully.");
     }
 }

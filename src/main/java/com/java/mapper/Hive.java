@@ -2,6 +2,7 @@ package com.java.mapper;
 
 import java.sql.*;
 
+@SuppressWarnings("SqlNoDataSourceInspection")
 public class Hive {
     private static final String DRIVE = "org.apache.hive.jdbc.HiveDriver";
     private static final String USERNAME = "root";
@@ -18,6 +19,7 @@ public class Hive {
         if (con != null) con.close();
     }
 
+    @SuppressWarnings("SqlNoDataSourceInspection")
     public void showDBS() throws SQLException, ClassNotFoundException {
         Class.forName(DRIVE);
         con = DriverManager.getConnection(URL, USERNAME, PASSWORD);
@@ -28,18 +30,20 @@ public class Hive {
         }
     }
 
+    @SuppressWarnings("SqlSourceToSinkFlow")
     public void createDB(String newDBName) throws SQLException, ClassNotFoundException {
         Class.forName(DRIVE);
         con = DriverManager.getConnection(URL, USERNAME, PASSWORD);
         state = con.createStatement();
-        state.execute("create database " + newDBName);
+        state.execute(String.format("create database %s", newDBName));
     }
 
+    @SuppressWarnings("SqlSourceToSinkFlow")
     public void dropDB(String DBName) throws SQLException, ClassNotFoundException {
         Class.forName(DRIVE);
         con = DriverManager.getConnection(URL, USERNAME, PASSWORD);
         state = con.createStatement();
-        state.execute("drop database if exists " + DBName + " CASCADE");
+        state.execute(String.format("drop database if exists %s CASCADE", DBName));
     }
 
     public static void init(String DBName) throws SQLException, ClassNotFoundException {
@@ -49,6 +53,7 @@ public class Hive {
         state = con.createStatement();
     }
 
+    @SuppressWarnings("SqlNoDataSourceInspection")
     public void createTable(String DBName, String tableName, Integer num_field, String terminated)
             throws SQLException, ClassNotFoundException {
         if (DBName == null) {
@@ -63,14 +68,17 @@ public class Hive {
             if (i != num_field - 1)
                 fieldStr.append(",");
         }
-        String sql = "create table if not exists " + tableName + " (" +
-                fieldStr + ")" +
+        //字段与字段之间的分隔符
+        String sql = "create table if not exists " +
+                tableName +
+                " (" + fieldStr + ")" +
                 "row format delimited " +
-                "fields terminated by '" + terminated + "' " +//字段与字段之间的分隔符
+                "fields terminated by '" + terminated + "' " +
                 "lines terminated by '\n' ";
         state.execute(sql);
     }
 
+    @SuppressWarnings("SqlNoDataSourceInspection")
     public void showTables(String DBName) throws SQLException, ClassNotFoundException {
         if (DBName == null) {
             init(DBNAME);
@@ -83,16 +91,26 @@ public class Hive {
         }
     }
 
-    public void descTable(String DBName, String tableName) throws SQLException, ClassNotFoundException {
+    public Boolean existsTable(String DBName, String tableName) throws SQLException, ClassNotFoundException {
         if (DBName == null) {
             init(DBNAME);
         } else {
             init(DBName);
         }
-        res = state.executeQuery("desc student");
-        while (res.next()) {
-            System.out.println(res.getString(1) + "\t" + res.getString(2));
+        String sql = "SHOW TABLES LIKE '" + tableName + "'";
+        res = state.executeQuery(sql);
+        return res.next();
+    }
+
+    public void dropTable(String DBName, String tableName) throws SQLException, ClassNotFoundException {
+        if(DBName == null) {
+            init("job");
+        } else {
+            init(DBName);
         }
+
+        String sql = "DROP TABLE " + tableName;
+        state.execute(sql);
     }
 
     public void loadData(String DBName, String tableName, String path) throws SQLException, ClassNotFoundException {
@@ -104,18 +122,6 @@ public class Hive {
         state.execute("load data inpath '" + path  + "' overwrite into table " + tableName);
     }
 
-    public void countData(String DBName, String tableName) throws SQLException, ClassNotFoundException {
-        if (DBName == null) {
-            init(DBNAME);
-        } else {
-            init(DBName);
-        }
-        res = state.executeQuery("select count(1) from " + tableName);
-        while (res.next()) {
-            System.out.println(res.getInt(1));
-        }
-    }
-
     public ResultSet sql(String DBName, String sql) throws SQLException, ClassNotFoundException {
         if (DBName == null) {
             init(DBNAME);
@@ -124,5 +130,23 @@ public class Hive {
         }
         res = state.executeQuery(sql);
         return res;
+    }
+
+    public void ddl(String DBName, String ddl) throws SQLException, ClassNotFoundException {
+        if (DBName == null) {
+            init(DBNAME);
+        } else {
+            init(DBName);
+        }
+        state.execute(ddl);
+    }
+
+    public void update(String DBName, String sql) throws SQLException, ClassNotFoundException {
+        if (DBName == null) {
+            init(DBNAME);
+        } else {
+            init(DBName);
+        }
+        state.executeUpdate(sql);
     }
 }

@@ -1,10 +1,10 @@
 package com.java.MR;
 
 import com.java.DBSCAN;
+import com.java.MR_DBSCAN;
 import com.java.ds.CType;
 import com.java.ds.PType;
 import com.java.ds.Point;
-import com.java.mapper.HDFS;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -17,6 +17,8 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.java.MR_DBSCAN.hdfs;
 
 public class LocalClustering {
     public static int MinPts;
@@ -38,8 +40,15 @@ public class LocalClustering {
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);
 
-        FileInputFormat.addInputPath(job, new Path(HDFS.JOB_PATH + "/output/" + partitionFile));
-        FileOutputFormat.setOutputPath(job, new Path(HDFS.JOB_PATH + "/output/local"));
+        FileInputFormat.addInputPath(job,
+                new Path("/job/DBSCAN/output/" + MR_DBSCAN.TableName + "_partition.txt"));
+        hdfs.init();
+        if(hdfs.exists("/job/DBSCAN/output/" + MR_DBSCAN.TableName + "_local")) {
+            hdfs.delete("/job/DBSCAN/output/" + MR_DBSCAN.TableName + "_local");
+        }
+        hdfs.close();
+        FileOutputFormat.setOutputPath(job,
+                new Path("/job/DBSCAN/output/" + MR_DBSCAN.TableName + "_local"));
 
         job.waitForCompletion(true);
     }
@@ -68,7 +77,7 @@ public class LocalClustering {
 
             for (Text text : values) {
                 String line = text.toString();
-                Point p = new Point(line, Integer.parseInt(key.toString()));
+                Point p = new Point(line, Integer.valueOf(key.toString()));
                 p.setPartitionId(Integer.parseInt(key.toString()));
                 pointList.add(p);
             }
@@ -88,12 +97,15 @@ public class LocalClustering {
                 }
 
                 // key:PartitionId record:ClusterId (AP, BP, FP) (C, B, N) [x1,x2,x3,...]
-                context.write(key, new Text("FP\t" + pointFlag + "\t" + point.getId()));
+                context.write(key,
+                        new Text(point.getClusterId() + "\tFP\t" + pointFlag + "\t" + point.getId()));
                 if (pointFlag.equals("C") && point.getPType() == PType.IM) {
-                    context.write(key, new Text("AP\t" + pointFlag + "\t" + point.getId()));
+                    context.write(key,
+                            new Text(point.getClusterId() + "\tAP\t" + pointFlag + "\t" + point.getId()));
                 }
                 if ((pointFlag.equals("C") || pointFlag.equals("B")) && point.getPType() == PType.OM) {
-                    context.write(key, new Text("BP\t" + pointFlag + "\t" + point.getId()));
+                    context.write(key,
+                            new Text(point.getClusterId() + "\tBP\t" + pointFlag + "\t" + point.getId()));
                 }
             }
         }

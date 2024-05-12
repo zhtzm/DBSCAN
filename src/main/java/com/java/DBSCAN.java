@@ -4,32 +4,32 @@ import com.java.ds.CType;
 import com.java.ds.Point;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class DBSCAN {
-    private int ClusterId;
+    private static int ClusterId = 0;
     private final List<Point> Data;
 
     public DBSCAN(List<Point> data) {
         Data = data;
-        ClusterId = 0;
     }
 
-    public double distance(Point p, Point q){
-        double dis;
-        if(p.getSize() == q.getSize()){
+    private double distance(Point p, Point q){
+        if(p.getSize() != q.getSize()){
+            return Double.POSITIVE_INFINITY;
+        } else {
             double sum=0.0;
-            int len= p.getSize();
-            for(int i=0;i<len;i++) {
-                sum += (p.getElements().get(i) - q.getElements().get(i)) * (p.getElements().get(i) - q.getElements().get(i));
+            int len = p.getSize();
+            for(int i = 0; i < len; i++) {
+                sum += (p.getElements().get(i) - q.getElements().get(i))
+                        * (p.getElements().get(i) - q.getElements().get(i));
             }
             return Math.sqrt(sum);
         }
-        return Double.POSITIVE_INFINITY;
     }
 
-    public List<Point> GetNeighborhood(Point p, double epi){
-        int sum=0;
+    private List<Point> GetNeighborhood(Point p, double epi){
         List<Point> vp = new ArrayList<>();
         for (Point q : Data) {
             if (distance(p, q) <= epi) {
@@ -41,39 +41,40 @@ public class DBSCAN {
 
     public void RunDBSCAN(int minPts, double epsilon) {
         for (Point p : Data) {
-            if (!p.isVisited()) {
+            if(!p.isVisited()) {
                 p.setVisited(true);
-                List<Point> neighbors = GetNeighborhood(p, epsilon);
-                if (neighbors.size() < minPts) {
+                List<Point> neighbors = this.GetNeighborhood(p, epsilon);
+                if(neighbors.size() < minPts) {
                     p.setCt(CType.NOISE);
                 } else {
-                    p.setClusterId(ClusterId);
-                    p.setCt(CType.CORE);
-                    for (int j = 0; j < neighbors.size(); j++) {
-                        Point p1 = neighbors.get(j);
-                        if (!p1.isVisited()) {
-                            p1.setVisited(true);
-                            p1.setClusterId(ClusterId);
-
-                            List<Point> neighbors1 = GetNeighborhood(p1, epsilon);
-                            if (neighbors1.size() >= minPts) {
-                                p1.setCt(CType.CORE);
-                                for (Point sk : neighbors1) {
-                                    if (!neighbors.contains(sk)) {
-                                        neighbors.add(sk);
-                                    }
-                                }
-                            } else {
-                                p1.setCt(CType.BORDER);
-                            }
-                        } else if (p1.getCt() == CType.NOISE) {
-                            p1.setClusterId(ClusterId);
-                            p1.setCt(CType.BORDER);
-                        }
-                    }
+                    expandCluster(p, neighbors, minPts, epsilon, ClusterId);
+                    ++ClusterId;
                 }
             }
-            this.ClusterId++;
+        }
+    }
+
+    private void expandCluster(Point p, List<Point> neighbors, int minPts, double epsilon, int ClusterId) {
+        p.setClusterId(ClusterId);
+        p.setCt(CType.CORE);
+        LinkedList<Point> queue = new LinkedList<>(neighbors);
+
+        while(!queue.isEmpty()) {
+            Point q = queue.poll();
+            if(!q.isVisited()) {
+                q.setVisited(true);
+                q.setClusterId(ClusterId);
+                List<Point> qNeighbors = GetNeighborhood(q, epsilon);
+                if(qNeighbors.size() >= minPts) {
+                    q.setCt(CType.CORE);
+                    queue.addAll(qNeighbors);
+                } else {
+                    q.setCt(CType.BORDER);
+                }
+            } else if(q.getCt() == CType.NOISE) {
+                q.setClusterId(ClusterId);
+                q.setCt(CType.BORDER);
+            }
         }
     }
 }

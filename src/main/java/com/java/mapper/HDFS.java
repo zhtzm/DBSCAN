@@ -1,6 +1,7 @@
 package com.java.mapper;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -34,20 +35,17 @@ public class HDFS {
         Path src = new Path(sourceFile);
         Path tgt = new Path(targetPath);
         fs.copyToLocalFile(false,src,tgt,true);
-        System.out.println("下载成功");
     }
 
     public void mkdir(String path) throws IOException {
         Path src = new Path(path);
         fs.mkdirs(src);
-        System.out.println("创建成功");
     }
 
     public void rename(String oldName, String newName) throws IOException {
         Path src = new Path(oldName);
         Path tgt = new Path(newName);
         fs.rename(src,tgt);
-        System.out.println("重命名成功");
     }
 
     public void delete(String path) throws IOException {
@@ -55,7 +53,11 @@ public class HDFS {
         if (fs.exists(src)) {
             fs.delete(src, true);
         }
-        System.out.println("删除成功");
+    }
+
+    public Boolean exists(String path) throws IOException {
+        Path path1 = new Path(path);
+        return fs.exists(path1);
     }
 
     public FSDataOutputStream createFile(Path path) throws IOException {	//将传入的dstPath转换为path对象
@@ -65,10 +67,16 @@ public class HDFS {
                 System.err.println("Failed to delete existing file/directory.");
                 return null;
             }
-            System.out.println("Existing file/directory deleted successfully.");
         }
-        System.out.println("创建文件成功");
         return fs.create(path);
+    }
+
+    public FSDataInputStream readFile(Path path) throws IOException {
+        if(fs.exists(path)) {
+            return fs.open(path);
+        } else {
+            throw new IOException();
+        }
     }
 
     public FileSystem getFS() {
