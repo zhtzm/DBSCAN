@@ -1,6 +1,6 @@
 package com.java;
 
-import com.java.MR.LocalClustering;
+import com.java.Spark.SparkLC;
 import com.java.mapper.HDFS;
 import com.java.mapper.Hive;
 
@@ -34,7 +34,7 @@ public class MR_DBSCAN {
 
         uploadLocalFile(localPath, NumField);
         DataPartitioning.partitioning(PartitionNum, Epsilon, NumField);
-        LocalClustering.clustering(MinPts, Epsilon, TableName);
+        SparkLC.clustering(MinPts, Epsilon, TableName);
         Merging.merging(TableName, NumField);
         Draw.draw(NumField, OutputPath);
     }
